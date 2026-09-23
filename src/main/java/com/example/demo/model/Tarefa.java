@@ -1,9 +1,10 @@
 package com.example.demo.model;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -19,23 +20,21 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Transacao {
+public class Tarefa {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long idCliente;
+    private String titulo;
 
-    private String emailCliente;
+    private String descricao;
 
-    private String codigoAcao;
+    @Enumerated(EnumType.STRING)
+    private StatusTarefa status;
 
-    private Integer quantidade;
+    @Enumerated(EnumType.STRING)
+    private PrioridadeTarefa prioridade;
 
-    private BigDecimal precoUnitario;
-
-    private BigDecimal valorTotal;
-
-    private LocalDateTime dataTransacao;
+    private LocalDateTime dataCriacao;
 }
