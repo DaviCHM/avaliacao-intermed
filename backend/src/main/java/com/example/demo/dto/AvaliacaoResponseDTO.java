@@ -18,9 +18,10 @@ import lombok.Setter;
 public class AvaliacaoResponseDTO implements Serializable {
 
     private Long id;
-    private String emailAvaliador;
-    private String emailAvaliado;
-    private String comentarios;
-    private Integer nota;
-    private LocalDateTime dataAvaliacao;
+    private String projeto;
+    private String titulo;
+    private String descricao;
+    private Integer prioridade;
+    private String emailCriador;
+    private LocalDateTime dataCriacao;
 }

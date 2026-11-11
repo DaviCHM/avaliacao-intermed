@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Sort;
 
 import com.example.demo.dto.AvaliacaoRequestDTO;
 import com.example.demo.dto.AvaliacaoResponseDTO;
+import com.example.demo.exception.RecursoNaoEncontradoException;
 import com.example.demo.model.Avaliacao;
 import com.example.demo.repository.AvaliacaoRepository;
 
@@ -35,46 +37,41 @@ class AvaliacaoServiceTest {
     }
 
     @Test
-    void deveListarTodasAsAvaliacoes() {
-        Avaliacao avaliacao = avaliacaoExistente();
-        when(avaliacaoRepository.findAll(any(Sort.class))).thenReturn(List.of(avaliacao));
+    void deveListarTodasAsTarefas() {
+        Avaliacao tarefa = Avaliacao.builder()
+                .id(1L).projeto("P").titulo("T").prioridade(5)
+                .emailCriador("a@a.com").dataCriacao(LocalDateTime.now()).build();
+        when(avaliacaoRepository.findAll(any(Sort.class))).thenReturn(List.of(tarefa));
 
         List<AvaliacaoResponseDTO> resultado = avaliacaoService.listar();
 
         assertThat(resultado).hasSize(1);
-        assertThat(resultado.get(0).getId()).isEqualTo(1L);
-        assertThat(resultado.get(0).getNota()).isEqualTo(8);
+        assertThat(resultado.get(0).getTitulo()).isEqualTo("T");
     }
 
     @Test
-    void deveCriarAvaliacaoComEmailDoAvaliadorEData() {
-        AvaliacaoRequestDTO requestDTO = new AvaliacaoRequestDTO("fulano@empresa.com", "Bom", 9);
-
+    void deveCriarTarefaComEmailDoCriadorEData() {
+        AvaliacaoRequestDTO requestDTO = new AvaliacaoRequestDTO("Projeto X", "Titulo", "Desc", 9);
         when(avaliacaoRepository.save(any(Avaliacao.class))).thenAnswer(invocation -> {
-            Avaliacao avaliacao = invocation.getArgument(0);
-            avaliacao.setId(1L);
-            return avaliacao;
+            Avaliacao a = invocation.getArgument(0);
+            a.setId(1L);
+            return a;
         });
 
-        AvaliacaoResponseDTO resultado = avaliacaoService.criar(requestDTO, "admin@teste.com");
+        AvaliacaoResponseDTO resultado = avaliacaoService.criar(requestDTO, "user@teste.com");
 
         assertThat(resultado.getId()).isEqualTo(1L);
-        assertThat(resultado.getEmailAvaliador()).isEqualTo("admin@teste.com");
-        assertThat(resultado.getEmailAvaliado()).isEqualTo("fulano@empresa.com");
-        assertThat(resultado.getNota()).isEqualTo(9);
-        assertThat(resultado.getDataAvaliacao()).isNotNull();
-
+        assertThat(resultado.getEmailCriador()).isEqualTo("user@teste.com");
+        assertThat(resultado.getPrioridade()).isEqualTo(9);
+        assertThat(resultado.getDataCriacao()).isNotNull();
         verify(avaliacaoRepository, times(1)).save(any(Avaliacao.class));
     }
 
-    private Avaliacao avaliacaoExistente() {
-        return Avaliacao.builder()
-                .id(1L)
-                .emailAvaliador("admin@teste.com")
-                .emailAvaliado("fulano@empresa.com")
-                .comentarios("Comentario")
-                .nota(8)
-                .dataAvaliacao(LocalDateTime.now())
-                .build();
+    @Test
+    void deveLancar404AoDeletarInexistente() {
+        when(avaliacaoRepository.existsById(99L)).thenReturn(false);
+
+        assertThatThrownBy(() -> avaliacaoService.deletar(99L))
+                .isInstanceOf(RecursoNaoEncontradoException.class);
     }
 }

@@ -38,8 +38,8 @@ public class SecurityConfig {
                         // ===== ROTAS: ajuste aqui na prova =====
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/avaliacoes").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/avaliacoes").hasAnyAuthority("ADMIN", "USER")
+                        // Qualquer usuario logado no Auth0 pode listar, criar e deletar tarefas
+                        .requestMatchers("/tarefa", "/tarefa/*").authenticated()
                         // =======================================
                         .anyRequest().authenticated()
                 )
