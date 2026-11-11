@@ -3,6 +3,10 @@ name: Build and Deploy
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -19,6 +23,7 @@ jobs:
           cache: maven
 
       - name: Build and test
+        working-directory: backend
         run: ./mvnw -B clean package -DskipTests
 
       - name: Log in to Docker Hub
@@ -30,9 +35,9 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./backend
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/avaliacao-intermed:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/avaliacoes:latest
 
   deploy:
     needs: build
@@ -45,15 +50,39 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/avaliacao-intermed:latest
+            # Rede compartilhada (a mesma da intermediaria); cria se nao existir
+            docker network create transacoes-net || true
+
+            # Postgres: so cria um container novo se DB_HOST for "postgres".
+            # Se voce ja tem um Postgres na EC2 (da intermediaria), use o DB_HOST de antes.
+            if [ "${{ secrets.DB_HOST }}" = "postgres" ]; then
+              docker start postgres || docker run -d --name postgres \
+                --network transacoes-net \
+                -e POSTGRES_USER="${{ secrets.DB_USER }}" \
+                -e POSTGRES_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+                -e POSTGRES_DB="${{ secrets.DB_NAME }}" \
+                -v pgdata:/var/lib/postgresql/data \
+                postgres:16
+            fi
+
+            # Redis para o cache
+            docker start redis || docker run -d --name redis --network transacoes-net redis:7
+
+            # Garante que o banco do projeto existe no Postgres (ignora erro se ja existir)
+            docker exec ${{ secrets.DB_HOST }} psql -U "${{ secrets.DB_USER }}" -c "CREATE DATABASE ${{ secrets.DB_NAME }};" || true
+
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/avaliacoes:latest
+            docker stop avaliacoes || true
+            docker rm avaliacoes || true
             docker stop avaliacao-intermed || true
-            docker rm avaliacao-intermed || true
-            docker run -d --name avaliacao-intermed \
+            docker run -d --name avaliacoes \
+              --restart always \
               --network transacoes-net \
               -p 8080:8080 \
               -e DB_HOST="${{ secrets.DB_HOST }}" \
               -e DB_USER="${{ secrets.DB_USER }}" \
               -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
               -e DB_NAME="${{ secrets.DB_NAME }}" \
-              -e USERS_API_BASE_URL="${{ secrets.USERS_API_BASE_URL }}" \
-              ${{ secrets.DOCKERHUB_USERNAME }}/avaliacao-intermed:latest
+              -e REDIS_HOST=redis \
+              ${{ secrets.DOCKERHUB_USERNAME }}/avaliacoes:latest
+            docker image prune -f
