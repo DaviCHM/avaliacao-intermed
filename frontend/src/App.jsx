@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { apiFetch } from './api'
 
-const ROLES_CLAIM = 'https://avaliacoes-api/roles'
-
 export default function App() {
   const { isAuthenticated, isLoading, user, loginWithRedirect, logout, getAccessTokenSilently } = useAuth0()
 
@@ -12,39 +10,38 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <div className="container">
-        <h1>Avaliacoes</h1>
+        <h1>Tarefas</h1>
         <button onClick={() => loginWithRedirect()}>Login</button>
       </div>
     )
   }
 
-  const roles = user?.[ROLES_CLAIM] || []
-  const isAdmin = roles.includes('ADMIN')
-
   return (
     <div className="container">
       <header>
-        <h1>Avaliacoes</h1>
+        <h1>Tarefas</h1>
         <div>
-          <span>{user.email} ({roles.join(', ') || 'sem role'})</span>
+          <span>{user.email}</span>
           <button onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>Logout</button>
         </div>
       </header>
-      <Avaliacoes getToken={getAccessTokenSilently} isAdmin={isAdmin} />
+      <Tarefas getToken={getAccessTokenSilently} />
     </div>
   )
 }
 
-function Avaliacoes({ getToken, isAdmin }) {
+const FORM_VAZIO = { projeto: '', titulo: '', descricao: '', prioridade: '' }
+
+function Tarefas({ getToken }) {
   const [lista, setLista] = useState([])
   const [erro, setErro] = useState('')
-  const [form, setForm] = useState({ emailAvaliado: '', comentarios: '', nota: '' })
+  const [form, setForm] = useState(FORM_VAZIO)
   const [enviando, setEnviando] = useState(false)
 
   async function carregar() {
     try {
       setErro('')
-      setLista(await apiFetch(getToken, '/avaliacoes'))
+      setLista(await apiFetch(getToken, '/tarefa'))
     } catch (e) {
       setErro(e.message)
     }
@@ -55,16 +52,24 @@ function Avaliacoes({ getToken, isAdmin }) {
     setEnviando(true)
     try {
       setErro('')
-      await apiFetch(getToken, '/avaliacoes', {
-        method: 'POST',
-        body: JSON.stringify({ ...form, nota: Number(form.nota) }),
-      })
-      setForm({ emailAvaliado: '', comentarios: '', nota: '' })
+      await apiFetch(getToken, '/tarefa', { method: 'POST', body: JSON.stringify({ ...form, prioridade: Number(form.prioridade) }) })
+      setForm(FORM_VAZIO)
       await carregar()
     } catch (e) {
       setErro(e.message)
     } finally {
       setEnviando(false)
+    }
+  }
+
+  async function deletar(id) {
+    if (!confirm('Deletar esta tarefa?')) return
+    try {
+      setErro('')
+      await apiFetch(getToken, `/tarefa/${id}`, { method: 'DELETE' })
+      await carregar()
+    } catch (e) {
+      setErro(e.message)
     }
   }
 
@@ -76,30 +81,31 @@ function Avaliacoes({ getToken, isAdmin }) {
     <>
       {erro && <p className="erro">{erro}</p>}
 
-      {isAdmin && (
-        <form onSubmit={cadastrar}>
-          <h2>Nova avaliacao</h2>
-          <input type="email" placeholder="Email do avaliado" value={form.emailAvaliado} onChange={mudar('emailAvaliado')} required />
-          <textarea placeholder="Comentarios" value={form.comentarios} onChange={mudar('comentarios')} />
-          <input type="number" min="0" max="10" placeholder="Nota (0 a 10)" value={form.nota} onChange={mudar('nota')} required />
-          <button type="submit" disabled={enviando}>{enviando ? 'Enviando...' : 'Cadastrar'}</button>
-        </form>
-      )}
+      <form onSubmit={cadastrar}>
+        <h2>Nova tarefa</h2>
+        <input placeholder="Projeto" value={form.projeto} onChange={mudar('projeto')} required />
+        <input placeholder="Titulo" value={form.titulo} onChange={mudar('titulo')} required />
+        <textarea placeholder="Descricao" value={form.descricao} onChange={mudar('descricao')} />
+        <input type="number" min="0" max="10" placeholder="Prioridade (0 a 10)" value={form.prioridade} onChange={mudar('prioridade')} required />
+        <button type="submit" disabled={enviando}>{enviando ? 'Enviando...' : 'Criar'}</button>
+      </form>
 
-      <h2>Avaliacoes</h2>
+      <h2>Tarefas</h2>
       <table>
         <thead>
-          <tr><th>ID</th><th>Avaliador</th><th>Avaliado</th><th>Comentarios</th><th>Nota</th><th>Data</th></tr>
+          <tr><th>ID</th><th>Projeto</th><th>Titulo</th><th>Descricao</th><th>Prioridade</th><th>Criada por</th><th>Data</th><th></th></tr>
         </thead>
         <tbody>
-          {lista.map((a) => (
-            <tr key={a.id}>
-              <td>{a.id}</td>
-              <td>{a.emailAvaliador}</td>
-              <td>{a.emailAvaliado}</td>
-              <td>{a.comentarios}</td>
-              <td>{a.nota}</td>
-              <td>{a.dataAvaliacao ? new Date(a.dataAvaliacao).toLocaleString('pt-BR') : ''}</td>
+          {lista.map((t) => (
+            <tr key={t.id}>
+              <td>{t.id}</td>
+              <td>{t.projeto}</td>
+              <td>{t.titulo}</td>
+              <td>{t.descricao}</td>
+              <td>{t.prioridade}</td>
+              <td>{t.emailCriador}</td>
+              <td>{t.dataCriacao ? new Date(t.dataCriacao).toLocaleString('pt-BR') : ''}</td>
+              <td><button onClick={() => deletar(t.id)}>Deletar</button></td>
             </tr>
           ))}
         </tbody>

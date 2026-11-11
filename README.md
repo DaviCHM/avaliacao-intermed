@@ -1,5 +1,7 @@
 # Sistema de Avaliacoes (simulado PF Projeto de Software)
 
+https://avaliacao-front-neon.vercel.app/
+
 Mesmo padrao da avaliacao intermediaria: Spring Boot 4.1.1, Java 17, camadas `controller / service / repository / model / dto / exception`, Dockerfile multi-stage, deploy via Docker Hub + SSH na EC2.
 
 ```
