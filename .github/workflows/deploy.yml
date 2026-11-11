@@ -65,8 +65,12 @@ jobs:
                 postgres:16
             fi
 
+            # Garante que o Postgres existente esta ligado
+            docker start ${{ secrets.DB_HOST }} || true
+            sleep 5
+
             # Redis para o cache
-            docker start redis || docker run -d --name redis --network transacoes-net redis:7
+            docker start redis || docker run -d --name redis --restart always --network transacoes-net redis:7
 
             # Garante que o banco do projeto existe no Postgres (ignora erro se ja existir)
             docker exec ${{ secrets.DB_HOST }} psql -U "${{ secrets.DB_USER }}" -c "CREATE DATABASE ${{ secrets.DB_NAME }};" || true
