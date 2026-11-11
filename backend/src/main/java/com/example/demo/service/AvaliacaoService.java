@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.dto.AvaliacaoRequestDTO;
@@ -25,7 +26,7 @@ public class AvaliacaoService {
     // Guarda a listagem no cache (Redis em producao)
     @Cacheable("avaliacoes")
     public List<AvaliacaoResponseDTO> listar() {
-        return new ArrayList<>(avaliacaoRepository.findAll().stream()
+        return new ArrayList<>(avaliacaoRepository.findAll(Sort.by("id")).stream()
                 .map(this::toResponseDTO)
                 .toList());
     }

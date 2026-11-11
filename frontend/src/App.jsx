@@ -39,6 +39,7 @@ function Avaliacoes({ getToken, isAdmin }) {
   const [lista, setLista] = useState([])
   const [erro, setErro] = useState('')
   const [form, setForm] = useState({ emailAvaliado: '', comentarios: '', nota: '' })
+  const [enviando, setEnviando] = useState(false)
 
   async function carregar() {
     try {
@@ -51,6 +52,7 @@ function Avaliacoes({ getToken, isAdmin }) {
 
   async function cadastrar(e) {
     e.preventDefault()
+    setEnviando(true)
     try {
       setErro('')
       await apiFetch(getToken, '/avaliacoes', {
@@ -58,9 +60,11 @@ function Avaliacoes({ getToken, isAdmin }) {
         body: JSON.stringify({ ...form, nota: Number(form.nota) }),
       })
       setForm({ emailAvaliado: '', comentarios: '', nota: '' })
-      carregar()
+      await carregar()
     } catch (e) {
       setErro(e.message)
+    } finally {
+      setEnviando(false)
     }
   }
 
@@ -78,7 +82,7 @@ function Avaliacoes({ getToken, isAdmin }) {
           <input type="email" placeholder="Email do avaliado" value={form.emailAvaliado} onChange={mudar('emailAvaliado')} required />
           <textarea placeholder="Comentarios" value={form.comentarios} onChange={mudar('comentarios')} />
           <input type="number" min="0" max="10" placeholder="Nota (0 a 10)" value={form.nota} onChange={mudar('nota')} required />
-          <button type="submit">Cadastrar</button>
+          <button type="submit" disabled={enviando}>{enviando ? 'Enviando...' : 'Cadastrar'}</button>
         </form>
       )}
 

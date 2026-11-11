@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
 
 import com.example.demo.dto.AvaliacaoRequestDTO;
 import com.example.demo.dto.AvaliacaoResponseDTO;
@@ -36,7 +37,7 @@ class AvaliacaoServiceTest {
     @Test
     void deveListarTodasAsAvaliacoes() {
         Avaliacao avaliacao = avaliacaoExistente();
-        when(avaliacaoRepository.findAll()).thenReturn(List.of(avaliacao));
+        when(avaliacaoRepository.findAll(any(Sort.class))).thenReturn(List.of(avaliacao));
 
         List<AvaliacaoResponseDTO> resultado = avaliacaoService.listar();
 

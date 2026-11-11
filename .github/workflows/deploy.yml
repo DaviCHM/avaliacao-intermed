@@ -88,5 +88,6 @@ jobs:
               -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
               -e DB_NAME="${{ secrets.DB_NAME }}" \
               -e REDIS_HOST=redis \
+              -e TZ=America/Sao_Paulo \
               ${{ secrets.DOCKERHUB_USERNAME }}/avaliacoes:latest
             docker image prune -f
